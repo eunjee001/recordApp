@@ -13,13 +13,16 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import com.kkyoungs.recordapp.databinding.ActivityMainBinding
 import java.io.IOException
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnTimerTickListener {
     companion object {
         private const val REQUEST_RECORD_AUDIO_CODE = 200
     }
@@ -27,21 +30,26 @@ class MainActivity : AppCompatActivity() {
     // 릴리즈 -> 재생 -> 릴리즈
 
     private enum class State {
-        RELEASE, RECORDING, PLAYING
+        RELEASE, RECORDING, PAUSE
     }
+
+    private lateinit var timer : Timer
 
     private var state: State = State.RELEASE
     private lateinit var binding: ActivityMainBinding
     private var recorder: MediaRecorder? = null
     private var player : MediaPlayer ?= null
     private var fileName: String = ""
+    private var recordingStopped = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        fileName = "${externalCacheDir?.absolutePath}/audiorecordtest.3gp"
+        binding.pauseButton.visibility = View.GONE
 
+        fileName = "${externalCacheDir?.absolutePath}/audiorecordtest.3gp"
+        timer = Timer(this)
         binding.recordButton.setOnClickListener {
             when (state) {
                 State.RELEASE -> {
@@ -50,33 +58,43 @@ class MainActivity : AppCompatActivity() {
 
                 State.RECORDING -> {
                     onRecord(false)
-                }
-
-                State.PLAYING -> {
 
                 }
+
+                State.PAUSE ->{
+                }
+
             }
         }
-        binding.playButton.setOnClickListener {
+//        binding.playButton.setOnClickListener {
+//            when (state) {
+//                State.RELEASE -> {
+//                    onPlay(true)
+//                }
+//                else ->{
+//                    //nothing
+//                }
+//
+//            }
+//        }
+
+        binding.pauseButton.setOnClickListener {
             when (state) {
                 State.RELEASE -> {
-                    onPlay(true)
-                }
-                else ->{
-                    //nothing
+                    recordPermission()
                 }
 
-            }
-        }
+                State.RECORDING -> {
+                }
 
-        binding.stopButton.setOnClickListener {
-            when (state) {
-                State.PLAYING -> {
-                    onPlay(false)
+                State.PAUSE->{
+                    pauseRecording()
+
+                    Toast.makeText(this, "녹음 정지", Toast.LENGTH_SHORT).show()
+
                 }
-                else ->{
-                    //nothing
-                }
+
+
             }
         }
     }
@@ -117,6 +135,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRecording() {
+        binding.pauseButton.visibility = View.VISIBLE
+        recordingStopped = true
+
         state = State.RECORDING
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -132,15 +153,41 @@ class MainActivity : AppCompatActivity() {
             start()
         }
 
+        binding.waveformView.clearData()
+        timer.start()
+
         binding.recordButton.setImageDrawable(
             ContextCompat.getDrawable(
-                this, R.drawable.baseline_stop_24
+                this, R.drawable.save
             )
         )
 
-        binding.recordButton.imageTintList = ColorStateList.valueOf(Color.BLACK)
-        binding.playButton.isEnabled = false
-        binding.playButton.alpha = 0.3f
+
+
+    }
+
+    private fun pauseRecording() {
+        state = State.PAUSE
+
+        if (!recordingStopped){
+            recorder = MediaRecorder().apply {
+                pause()
+            }
+            recordingStopped = true
+        }else{
+            recorder?.resume()
+            recordingStopped = false
+
+        }
+        timer.stop()
+
+        binding.recordButton.setImageDrawable(
+            ContextCompat.getDrawable(
+                this, R.drawable.record
+            )
+        )
+
+
 
     }
 
@@ -149,17 +196,16 @@ class MainActivity : AppCompatActivity() {
             stop()
             release()
         }
-        recorder = null
+
+        timer.stop()
+
         state = State.RELEASE
 
-        binding.recordButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.baseline_fiber_manual_record_24))
-        binding.recordButton.imageTintList = ColorStateList.valueOf(Color.RED)
-        binding.playButton.isEnabled = true
-        binding.playButton.alpha = 1.0f
+        binding.recordButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.record))
+
     }
 
     private fun startPlaying(){
-        state = State.PLAYING
 
         player = MediaPlayer().apply {
 
@@ -171,17 +217,19 @@ class MainActivity : AppCompatActivity() {
             }
             start()
         }
+        binding.waveformView.clearWave()
+        timer.start()
         player?.setOnCompletionListener {
             stopPlaying()
         }
-        binding.recordButton.isEnabled = false
-        binding.recordButton.alpha = 0.3f
+
     }
 
     private fun stopPlaying(){
         state = State.RELEASE
         player?.release()
         player = null
+        timer.stop()
         binding.recordButton.isEnabled = true
         binding.recordButton.alpha = 1.0f
     }
@@ -240,6 +288,21 @@ class MainActivity : AppCompatActivity() {
             } else {
                 showPermissionSettingDialog()
             }
+        }
+    }
+
+    override fun onTick(duration: Long) {
+        val millisecond = duration % 1000
+        val second = (duration / 1000) % 60
+        val minute = (duration / 1000 / 60)
+
+        binding.timerTextView.text = String.format("%02d:%02d:%02d", minute, second, millisecond / 10)
+
+//        if (state == State.PLAYING){
+//            binding.waveformView.replayAmplitude()
+//        }else
+            if (state == State.RECORDING){
+            binding.waveformView.addAmplitude(recorder?.maxAmplitude?.toFloat() ?: 0f)
         }
     }
 }
