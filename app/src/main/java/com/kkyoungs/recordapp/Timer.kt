@@ -18,9 +18,16 @@ class Timer(listener : OnTimerTickListener) {
     fun start(){
         handler.postDelayed(runnable, 40L)
     }
-    fun stop(){
+    fun stop(pause: Boolean){
+        if (!pause){
+            duration = 0
+        }
         handler.removeCallbacks(runnable)
-        duration = 0
+
+    }
+
+    fun pause (){
+        handler.postDelayed(runnable, 100000000000000)
     }
 }
 

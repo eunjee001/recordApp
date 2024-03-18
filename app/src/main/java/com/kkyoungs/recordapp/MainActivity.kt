@@ -3,24 +3,21 @@ package com.kkyoungs.recordapp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
-import android.graphics.Color
-import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import com.kkyoungs.recordapp.databinding.ActivityMainBinding
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class MainActivity : AppCompatActivity(), OnTimerTickListener {
     companion object {
@@ -38,17 +35,19 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     private var state: State = State.RELEASE
     private lateinit var binding: ActivityMainBinding
     private var recorder: MediaRecorder? = null
-    private var player : MediaPlayer ?= null
     private var fileName: String = ""
     private var recordingStopped = false
+    private var uriViewModel: UriViewModel? = null // 오디오 파일 uri
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.pauseButton.visibility = View.GONE
-
-        fileName = "${externalCacheDir?.absolutePath}/audiorecordtest.3gp"
+//        val sdCard = Environment.getExternalStorageDirectory()
+//        val file = File(sdCard, "audioTest.mp4")
+//        fileName = file.absolutePath
         timer = Timer(this)
         binding.recordButton.setOnClickListener {
             when (state) {
@@ -66,6 +65,17 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
             }
         }
+        binding.list.setOnClickListener {
+        if (uriViewModel !=null) {
+
+                val intent = Intent(this, RecordingListActivity::class.java)
+
+                startActivity(intent)
+        }else  {
+            Toast.makeText(this, "저장된 녹음 파일이 없습니다.", Toast.LENGTH_SHORT).show()
+        }
+        }
+
 //        binding.playButton.setOnClickListener {
 //            when (state) {
 //                State.RELEASE -> {
@@ -79,27 +89,19 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 //        }
 
         binding.pauseButton.setOnClickListener {
-            when (state) {
-                State.RELEASE -> {
-                    recordPermission()
-                }
+            pauseRecording()
 
-                State.RECORDING -> {
-                }
-
-                State.PAUSE->{
-                    pauseRecording()
-
-                    Toast.makeText(this, "녹음 정지", Toast.LENGTH_SHORT).show()
-
-                }
-
-
-            }
         }
     }
 
-    private fun onPlay(start : Boolean) = if (start) startPlaying() else stopPlaying()
+    override fun onPause() {
+        super.onPause()
+        if (recorder !=null){
+            recorder?.release()
+            recorder = null
+        }
+    }
+
 
     private fun recordPermission() {
         when {
@@ -130,16 +132,23 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
     private fun onRecord(start: Boolean) = if (start) {
         startRecording()
+        println(">>>> start?")
+
     } else {
+        println(">>>> stop?")
         stopRecording()
     }
 
     private fun startRecording() {
         binding.pauseButton.visibility = View.VISIBLE
         recordingStopped = true
-
+        val recordPath = getExternalFilesDir("/")!!.absolutePath
+        // 파일 이름 변수를 현재 날짜가 들어가도록 초기화. 그 이유는 중복된 이름으로 기존에 있던 파일이 덮어 쓰여지는 것을 방지하고자 함.
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        fileName = recordPath + "/" + "RecordExample_" + timeStamp + "_" + "audio.mp4"
         state = State.RECORDING
         recorder = MediaRecorder().apply {
+
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
             setOutputFile(fileName)
@@ -147,10 +156,11 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
             try {
                 prepare()
+                start()
+
             } catch (e: IOException) {
                 Log.e("APP", "prepare() failed $e")
             }
-            start()
         }
 
         binding.waveformView.clearData()
@@ -161,33 +171,35 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
                 this, R.drawable.save
             )
         )
-
+//
+//        binding.recordButton.setOnClickListener {
+//            onRecord(false)
+//        }
+//
 
 
     }
 
     private fun pauseRecording() {
-        state = State.PAUSE
-
         if (!recordingStopped){
-            recorder = MediaRecorder().apply {
-                pause()
-            }
+            recorder ?.pause()
             recordingStopped = true
+            timer.stop(true)
+            binding.pauseButton.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this, R.drawable.baseline_play_arrow_24
+                )
+            )
         }else{
             recorder?.resume()
             recordingStopped = false
-
-        }
-        timer.stop()
-
-        binding.recordButton.setImageDrawable(
-            ContextCompat.getDrawable(
-                this, R.drawable.record
+            timer.start()
+            binding.pauseButton.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this, R.drawable.pause
+                )
             )
-        )
-
-
+        }
 
     }
 
@@ -196,43 +208,16 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             stop()
             release()
         }
+        recorder = null
 
-        timer.stop()
+        timer.stop(false)
 
         state = State.RELEASE
 
         binding.recordButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.record))
-
+        uriViewModel = UriViewModel(Uri.parse(fileName))
     }
 
-    private fun startPlaying(){
-
-        player = MediaPlayer().apply {
-
-            try {
-                setDataSource(fileName)
-                prepare()
-            }catch (e:IOException){
-                Log.e("APP", "media playter prepare fail $e")
-            }
-            start()
-        }
-        binding.waveformView.clearWave()
-        timer.start()
-        player?.setOnCompletionListener {
-            stopPlaying()
-        }
-
-    }
-
-    private fun stopPlaying(){
-        state = State.RELEASE
-        player?.release()
-        player = null
-        timer.stop()
-        binding.recordButton.isEnabled = true
-        binding.recordButton.alpha = 1.0f
-    }
 
     //원리
     private fun showPermissionRationalDialog() {
@@ -296,7 +281,7 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         val second = (duration / 1000) % 60
         val minute = (duration / 1000 / 60)
 
-        binding.timerTextView.text = String.format("%02d:%02d:%02d", minute, second, millisecond / 10)
+        binding.timerTextView.text = String.format("%02d:%02d:%02d", minute, second, millisecond / 10).toString()
 
 //        if (state == State.PLAYING){
 //            binding.waveformView.replayAmplitude()
