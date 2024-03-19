@@ -1,10 +1,8 @@
 package com.kkyoungs.recordapp
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.net.toFile
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -12,14 +10,14 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.kkyoungs.recordapp.databinding.ItemRecordingBinding
 import java.io.File
 
-class RecordingAdapter: ListAdapter<UriViewModel, RecordingAdapter.RecordingViewHolder>(diffUtil) {
+class RecordingAdapter: ListAdapter<RecordUri, RecordingAdapter.RecordingViewHolder>(diffUtil) {
     companion object{
-        val diffUtil = object : DiffUtil.ItemCallback<UriViewModel>(){
-            override fun areItemsTheSame(oldItem: UriViewModel, newItem: UriViewModel): Boolean {
+        val diffUtil = object : DiffUtil.ItemCallback<RecordUri>(){
+            override fun areItemsTheSame(oldItem: RecordUri, newItem: RecordUri): Boolean {
                 return oldItem.uri === newItem.uri
             }
 
-            override fun areContentsTheSame(oldItem: UriViewModel, newItem: UriViewModel): Boolean {
+            override fun areContentsTheSame(oldItem: RecordUri, newItem: RecordUri): Boolean {
                 return oldItem.uri == newItem.uri
             }
 
@@ -42,8 +40,8 @@ class RecordingAdapter: ListAdapter<UriViewModel, RecordingAdapter.RecordingView
 
     }
     inner class RecordingViewHolder(private var binding : ItemRecordingBinding) : ViewHolder(binding.root){
-        fun bind(item : UriViewModel){
-            val file = File(item.uri.toString())
+        fun bind(item : RecordUri){
+            val file = File(item.uri)
             binding.audioTitleItemAudio.text = file.name
 
             println(">>>file2 " +file.name)
