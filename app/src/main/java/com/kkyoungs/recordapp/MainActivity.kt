@@ -3,18 +3,23 @@ package com.kkyoungs.recordapp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.kkyoungs.recordapp.databinding.ActivityMainBinding
+import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,7 +43,14 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     private var fileName: String = ""
     private var recordingStopped = false
     private var uriViewModel: UriViewModel? = null // 오디오 파일 uri
-
+    private var uriList = arrayListOf<UriViewModel>()
+    private var player : MediaPlayer ?= null
+    /** 리사이클러뷰  */
+    private val audioAdapter by lazy {
+        RecordingAdapter()
+    }
+    private var isPlaying = false
+    var playIcon : ImageView?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -67,10 +79,9 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         }
         binding.list.setOnClickListener {
         if (uriViewModel !=null) {
-
-                val intent = Intent(this, RecordingListActivity::class.java)
-
-                startActivity(intent)
+            adapterSetting()
+            binding.doRecording.visibility = View.GONE
+            binding.showRecordingList.visibility = View.VISIBLE
         }else  {
             Toast.makeText(this, "저장된 녹음 파일이 없습니다.", Toast.LENGTH_SHORT).show()
         }
@@ -210,12 +221,17 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         }
         recorder = null
 
-        timer.stop(false)
 
         state = State.RELEASE
+        timer.stop(false)
+        Toast.makeText(this, "녹음을 저장 했습니다.." , Toast.LENGTH_SHORT).show()
+        binding.timerTextView.text = "00:00:00"
+        binding.waveformView.clearWave()
 
         binding.recordButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.record))
         uriViewModel = UriViewModel(Uri.parse(fileName))
+        uriList.add(uriViewModel!!)
+
     }
 
 
@@ -275,7 +291,67 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             }
         }
     }
+    private fun adapterSetting(){
+        binding.recordRecyclerView.apply {
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false )
+            adapter = audioAdapter
+        }
+        println(">>> arrayListOf<UriViewModel>()" +uriList)
+        audioAdapter.submitList(uriList)
+        binding.recordDoing.setOnClickListener {
+            binding.doRecording.visibility = View.VISIBLE
+            binding.showRecordingList.visibility = View.GONE
+        }
+        audioAdapter.setOnItemClickListener(object : RecordingAdapter.OnRecordingClickListener{
+            override fun onItemClick(view: View, position: Int) {
+                val uriName = uriViewModel?.uri
+                val file = File(uriName.toString())
+                if (isPlaying){
+                    if (playIcon == view as ImageView){
+                        stopPlaying()
+                    }else{
+                        stopPlaying()
 
+                        playIcon = view
+                        startPlaying(file)
+                    }
+                }else{
+                    playIcon = view as ImageView
+                    startPlaying(file)
+                }
+            }
+
+        })
+    }
+
+    private fun startPlaying(file : File){
+
+        player = MediaPlayer().apply {
+
+            try {
+                setDataSource(file.absolutePath)
+                prepare()
+            }catch (e: IOException){
+                Log.e("APP", "media playter prepare fail $e")
+            }
+            start()
+        }
+        playIcon?.setImageDrawable(resources.getDrawable(R.drawable.baseline_pause_circle_outline_24, null))
+        isPlaying = true
+//        binding.waveformView.clearWave()
+//        timer.start()
+        player?.setOnCompletionListener {
+            stopPlaying()
+        }
+
+    }
+
+    private fun stopPlaying(){
+        playIcon?.setImageDrawable(resources.getDrawable(R.drawable.baseline_audio_file_24, null))
+        isPlaying = false
+        player?.stop()
+//        timer.stop(false)
+    }
     override fun onTick(duration: Long) {
         val millisecond = duration % 1000
         val second = (duration / 1000) % 60

@@ -11,5 +11,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/recyclerView"
         android:orientation="vertical"
+        tools:listitem="@layout/item_recording"
+
         />
 </LinearLayout>
