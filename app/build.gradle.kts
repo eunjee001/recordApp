@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.kkyoungs.recordapp"
+    namespace = "com.kkyoungs.simpleRecorder"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.kkyoungs.recordapp"
+        applicationId = "com.kkyoungs.simpleRecorder"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -52,6 +52,8 @@ dependencies {
     implementation ("androidx.activity:activity-ktx:1.8.2")
 
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation("androidx.room:room-runtime:2.6.1")
+
     kapt("androidx.room:room-compiler:2.6.1")
     androidTestImplementation("androidx.room:room-testing:2.6.1")
 
@@ -63,6 +65,5 @@ dependencies {
     api ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
     api ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 
-
-
+    implementation("com.google.android.exoplayer:exoplayer:2.13.3")
 }

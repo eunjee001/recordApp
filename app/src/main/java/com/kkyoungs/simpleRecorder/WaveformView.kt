@@ -1,4 +1,4 @@
-package com.kkyoungs.recordapp
+package com.kkyoungs.simpleRecorder
 
 import android.content.Context
 import android.graphics.Canvas
@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import java.time.Duration
 
 class WaveformView @JvmOverloads constructor(
     context : Context,
@@ -20,14 +19,14 @@ class WaveformView @JvmOverloads constructor(
     private val rectList = mutableListOf<RectF>()
 
     private var tick = 0
-    private val redPaint = Paint().apply{
-        color = Color.YELLOW
+    private val bluePaint = Paint().apply{
+        color = Color.BLUE
     }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         for(rectF in rectList){
-            canvas.drawRect(rectF, redPaint)
+            canvas.drawRect(rectF, bluePaint)
         }
     }
 

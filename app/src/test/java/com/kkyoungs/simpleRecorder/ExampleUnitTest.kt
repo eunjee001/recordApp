@@ -1,4 +1,4 @@
-package com.kkyoungs.recordapp
+package com.kkyoungs.simpleRecorder
 
 import org.junit.Test
 

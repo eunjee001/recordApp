@@ -1,4 +1,4 @@
-package com.kkyoungs.recordapp
+package com.kkyoungs.simpleRecorder.data
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -17,6 +17,6 @@ interface RecordDao {
     @Query("DELETE FROM record_uri")
     suspend fun deleteAll()
 
-    @Query("SELECT * FROM record_uri ORDER BY uri ASC")
+    @Query("SELECT * FROM record_uri ORDER BY id DESC")
     fun getAlphabetizedWords(): Flow<List<RecordUri>>
 }

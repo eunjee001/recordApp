@@ -1,5 +1,6 @@
-package com.kkyoungs.recordapp
+package com.kkyoungs.simpleRecorder
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,10 +8,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.kkyoungs.recordapp.databinding.ItemRecordingBinding
+import com.kkyoungs.simpleRecorder.data.RecordUri
+import com.kkyoungs.simpleRecorder.databinding.ItemRecordingBinding
 import java.io.File
 
-class RecordingAdapter: ListAdapter<RecordUri, RecordingAdapter.RecordingViewHolder>(diffUtil) {
+class RecordingAdapter(val context: Context): ListAdapter<RecordUri, RecordingAdapter.RecordingViewHolder>(diffUtil) {
     companion object{
         val diffUtil = object : DiffUtil.ItemCallback<RecordUri>(){
             override fun areItemsTheSame(oldItem: RecordUri, newItem: RecordUri): Boolean {
@@ -51,6 +53,11 @@ class RecordingAdapter: ListAdapter<RecordUri, RecordingAdapter.RecordingViewHol
                 if (pos != RecyclerView.NO_POSITION){
                     if (listener!=null){
                         listener?.onItemClick(it, pos)
+                        binding.playBtnItemAudio.setImageDrawable(
+                            context.getDrawable(
+                                R.drawable.baseline_pause_circle_outline_24
+                            )
+                        )
                     }
                 }
             }

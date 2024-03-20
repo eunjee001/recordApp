@@ -1,7 +1,6 @@
-package com.kkyoungs.recordapp
+package com.kkyoungs.simpleRecorder
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
@@ -10,16 +9,23 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
+import android.view.WindowManager
 import android.widget.ImageView
+import android.widget.SeekBar
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.kkyoungs.recordapp.databinding.ActivityMainBinding
+import com.google.android.exoplayer2.SimpleExoPlayer
+import com.kkyoungs.simpleRecorder.data.RecordUri
+import com.kkyoungs.simpleRecorder.data.RecordViewModel
+import com.kkyoungs.simpleRecorder.data.RecordViewModelFactory
+import com.kkyoungs.simpleRecorder.databinding.ActivityMainBinding
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -50,10 +56,9 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     private val recordViewModel: RecordViewModel by viewModels {
         RecordViewModelFactory((application as RecordsApplication).repository)
     }
-
     /** 리사이클러뷰  */
     private val audioAdapter by lazy {
-        RecordingAdapter()
+        RecordingAdapter(this)
     }
     private var isPlaying = false
     var playIcon: ImageView? = null
@@ -61,6 +66,9 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        titleBarSetting()
+        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
 
         binding.pauseButton.visibility = View.GONE
 
@@ -68,6 +76,8 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         binding.recordButton.setOnClickListener {
             when (state) {
                 State.RELEASE -> {
+                    binding.pauseButton.visibility = View.GONE
+
                     recordPermission()
                 }
 
@@ -81,29 +91,40 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
             }
         }
-        binding.list.setOnClickListener {
-            adapterSetting()
-            binding.doRecording.visibility = View.GONE
-            binding.showRecordingList.visibility = View.VISIBLE
-
-        }
-
-//        binding.playButton.setOnClickListener {
-//            when (state) {
-//                State.RELEASE -> {
-//                    onPlay(true)
-//                }
-//                else ->{
-//                    //nothing
-//                }
-//
-//            }
-//        }
 
         binding.pauseButton.setOnClickListener {
             pauseRecording()
-
         }
+    }
+
+    private fun titleBarSetting() {
+        binding.backBtn.visibility = View.GONE
+        binding.recordList.visibility = View.VISIBLE
+
+        binding.recordList.setOnClickListener {
+            adapterSetting()
+            binding.doRecording.visibility = View.GONE
+            binding.showRecordingList.visibility = View.VISIBLE
+            binding.backBtn.visibility = View.VISIBLE
+            binding.recordList.visibility = View.GONE
+        }
+
+        binding.backBtn.setOnClickListener {
+            binding.doRecording.visibility = View.VISIBLE
+            binding.showRecordingList.visibility = View.GONE
+            binding.backBtn.visibility = View.GONE
+            binding.recordList.visibility = View.VISIBLE
+        }
+
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        when(keyCode){
+            KeyEvent.KEYCODE_BACK ->{
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onPause() {
@@ -113,7 +134,6 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             recorder = null
         }
     }
-
 
     private fun recordPermission() {
         when {
@@ -144,32 +164,27 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
     private fun onRecord(start: Boolean) = if (start) {
         startRecording()
-        println(">>>> start?")
-
     } else {
-        println(">>>> stop?")
         stopRecording()
     }
 
     private fun startRecording() {
         binding.pauseButton.visibility = View.VISIBLE
-        recordingStopped = true
+        recordingStopped = false
         val recordPath = getExternalFilesDir("/")!!.absolutePath
         // 파일 이름 변수를 현재 날짜가 들어가도록 초기화. 그 이유는 중복된 이름으로 기존에 있던 파일이 덮어 쓰여지는 것을 방지하고자 함.
         val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        fileName = recordPath + "/" + "RecordExample_" + timeStamp + "_" + "audio.mp4"
+
+        fileName = recordPath + "/" + "record" + timeStamp + "_" + "audio.mp3"
         state = State.RECORDING
         recorder = MediaRecorder().apply {
-
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
             setOutputFile(fileName)
             setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-
             try {
                 prepare()
                 start()
-
             } catch (e: IOException) {
                 Log.e("APP", "prepare() failed $e")
             }
@@ -180,9 +195,10 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
 
         binding.recordButton.setImageDrawable(
             ContextCompat.getDrawable(
-                this, R.drawable.save
+                this, R.drawable.new2
             )
         )
+
     }
 
     private fun pauseRecording() {
@@ -209,6 +225,8 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     }
 
     private fun stopRecording() {
+        binding.pauseButton.visibility = View.GONE
+
         recorder?.apply {
             stop()
             release()
@@ -225,7 +243,6 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         uriViewModel = RecordUri(fileName)
         recordViewModel.insert(uriViewModel!!)
         uriList.add(uriViewModel!!)
-
     }
 
 
@@ -296,14 +313,14 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             record.let { audioAdapter.submitList(it) }
         }
 
-        binding.recordDoing.setOnClickListener {
-            binding.doRecording.visibility = View.VISIBLE
-            binding.showRecordingList.visibility = View.GONE
-        }
+
 
         audioAdapter.setOnItemClickListener(object : RecordingAdapter.OnRecordingClickListener {
             override fun onItemClick(view: View, position: Int) {
-                val uriName = uriViewModel?.uri
+                val uriName = recordViewModel.allRecords.value?.get(position)?.uri
+                println(">>position " +position)
+
+                println(">>uriName " +uriName)
                 val file = File(uriName.toString())
                 if (isPlaying) {
                     if (playIcon == view as ImageView) {
@@ -315,7 +332,6 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
                         startPlaying(file)
                     }
                 } else {
-                    playIcon = view as ImageView
                     startPlaying(file)
                 }
             }
@@ -324,8 +340,10 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     }
 
     private fun startPlaying(file: File) {
+        Toast.makeText(this, "재생", Toast.LENGTH_SHORT).show()
 
         player = MediaPlayer().apply {
+            println("file " +file.absolutePath)
 
             try {
                 setDataSource(file.absolutePath)
@@ -335,28 +353,64 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             }
             start()
         }
-        playIcon?.setImageDrawable(
-            resources.getDrawable(
-                R.drawable.baseline_pause_circle_outline_24,
-                null
-            )
-        )
+
         isPlaying = true
-//        binding.waveformView.clearWave()
-//        timer.start()
+
         player?.setOnCompletionListener {
             stopPlaying()
         }
 
     }
 
-    private fun stopPlaying() {
+    private fun  stopPlaying() {
         playIcon?.setImageDrawable(resources.getDrawable(R.drawable.baseline_audio_file_24, null))
         isPlaying = false
         player?.stop()
-//        timer.stop(false)
     }
+//    private fun updateSeekUi(duration: Long, position: Long) {
+//        binding.playListSeekBar.max = (duration / 1000).toInt()
+//        binding.playListSeekBar.progress = (position / 1000).toInt()
+//    }
+//    private var playerSecond: SimpleExoPlayer? = null
 
+//    private fun initPlayView() {
+//        this.let {
+//             playerSecond = SimpleExoPlayer.Builder(it).build()
+//        }
+//
+//        binding.playerView.player = playerSecond
+//
+//        binding.let { binding ->
+//
+//            playerSecond?.addListener(object : Player.EventListener {
+//                override fun onIsPlayingChanged(isPlaying: Boolean) {
+//                    super.onIsPlayingChanged(isPlaying)
+//
+//                    if (isPlaying) {
+//                        binding.playControlImageView.setImageResource(R.drawable.ic_baseline_pause_48)
+//                    } else {
+//                        binding.playControlImageView.setImageResource(R.drawable.ic_baseline_play_arrow_48)
+//                    }
+//                }
+//
+//                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+//                    super.onMediaItemTransition(mediaItem, reason)
+//
+//                    val newIndex = mediaItem?.mediaId ?: return
+//                    model.currentPosition = newIndex.toInt()
+//                    updatePlayerView(model.currentMusicModel())
+//
+//                    playListAdapter.submitList(model.getAdapterModels())
+//                }
+//            })
+//        }
+//    }
+//    private fun initSeekBar() {
+//
+//        binding.playListSeekBar.setOnTouchListener { view, motionEvent ->
+//            false
+//        }
+//    }
     override fun onTick(duration: Long) {
         val millisecond = duration % 1000
         val second = (duration / 1000) % 60
@@ -365,9 +419,6 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
         binding.timerTextView.text =
             String.format("%02d:%02d:%02d", minute, second, millisecond / 10).toString()
 
-//        if (state == State.PLAYING){
-//            binding.waveformView.replayAmplitude()
-//        }else
         if (state == State.RECORDING) {
             binding.waveformView.addAmplitude(recorder?.maxAmplitude?.toFloat() ?: 0f)
         }
