@@ -15,3 +15,9 @@
 <p align="center">
  <img src = "/main.png">
 </p>
+<p align="center">
+ <img src = "/recording.png">
+</p>
+<p align="center">
+ <img src = "/list.png">
+</p>
