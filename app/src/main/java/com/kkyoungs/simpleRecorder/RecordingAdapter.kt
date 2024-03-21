@@ -26,7 +26,6 @@ class RecordingAdapter(val context: Context): ListAdapter<RecordUri, RecordingAd
         }
     }
     private var listener : OnRecordingClickListener ?=null
-
     fun setOnItemClickListener(listener: OnRecordingClickListener){
         this.listener = listener
     }
@@ -39,7 +38,6 @@ class RecordingAdapter(val context: Context): ListAdapter<RecordUri, RecordingAd
     override fun onBindViewHolder(holder: RecordingViewHolder, position: Int) {
         val item = getItem(position)
         holder.bind(item)
-
     }
     inner class RecordingViewHolder(private var binding : ItemRecordingBinding) : ViewHolder(binding.root){
         fun bind(item : RecordUri){
@@ -48,23 +46,21 @@ class RecordingAdapter(val context: Context): ListAdapter<RecordUri, RecordingAd
 
             println(">>>file2 " +file.name)
 
-            binding.playBtnItemAudio.setOnClickListener {
+            binding.root.setOnClickListener {
                 val pos = adapterPosition
                 if (pos != RecyclerView.NO_POSITION){
                     if (listener!=null){
                         listener?.onItemClick(it, pos)
-                        binding.playBtnItemAudio.setImageDrawable(
-                            context.getDrawable(
-                                R.drawable.baseline_pause_circle_outline_24
-                            )
-                        )
                     }
+
                 }
             }
+
         }
     }
     interface OnRecordingClickListener{
         fun onItemClick(view: View, position: Int)
     }
+
 }
 

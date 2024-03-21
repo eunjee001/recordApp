@@ -66,4 +66,7 @@ dependencies {
     api ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 
     implementation("com.google.android.exoplayer:exoplayer:2.13.3")
+    implementation("com.google.android.exoplayer:exoplayer-core:2.13.3")
+    implementation("com.google.android.exoplayer:exoplayer-ui:2.13.3")
+
 }
