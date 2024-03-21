@@ -11,6 +11,7 @@
 - viewmodel, livedata, coroutines
 - permission, roomDB
 
-### 📸 캡쳐 화면
-<img width="80%" src="/save.png"/>
-
+### 📸미리보기
+<p align="center">
+ <img src = "./main.png">
+</p>
