@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     companion object {
         private const val REQUEST_RECORD_AUDIO_CODE = 200
     }
- 
+
     private enum class State {
         RELEASE, RECORDING, PAUSE
     }
