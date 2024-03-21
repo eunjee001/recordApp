@@ -13,11 +13,11 @@
 
 ### 📸미리보기
 <p align="center">
- <img src = "/main.png">
+ <img src = "/main.png" width="200" height="400">
 </p>
 <p align="center">
- <img src = "/recording.png">
+ <img src = "/recording.png" width="200" height="400">
 </p>
 <p align="center">
- <img src = "/list.png">
+ <img src = "/list.png" width="200" height="400">
 </p>
