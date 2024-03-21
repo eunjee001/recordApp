@@ -13,5 +13,5 @@
 
 ### 📸미리보기
 <p align="center">
- <img src = "![main.png](app%2Fsrc%2Fmain%2Fres%2Fdrawable%2Fmain.png)">
+ <img src = "/main.png">
 </p>
