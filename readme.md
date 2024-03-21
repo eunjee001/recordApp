@@ -12,12 +12,10 @@
 - permission, roomDB
 
 ### 📸미리보기
-<p align="center">
+<div>
  <img src = "/main.png" width="200" height="400">
-</p>
-<p align="center">
- <img src = "/recording.png" width="200" height="400">
-</p>
-<p align="center">
- <img src = "/list.png" width="200" height="400">
-</p>
+
+ <img src = "/recording.png" width="200" height="400" >
+
+ <img src = "/list.png" width="200" height="400" >
+</div>
